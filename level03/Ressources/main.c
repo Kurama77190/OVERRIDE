@@ -28,8 +28,7 @@ int main(void)
 
 void test(char *input, char *magic_ptr)
 {
-    int key = (int)((long)magic_ptr - (long)input);
-
+    int key = (int)((long)magic_ptr - (long)atoi(input));
     if (key >= 1 && key <= 21) {
         decrypt(key);
     } else {
@@ -50,7 +49,7 @@ void decrypt(int key)
     }
     decrypted[sizeof(encrypted) - 1] = '\0';
 
-    if (strcmp(decrypted, "Congratulations!") == 0) {
+    if (strncmp(decrypted, "Congratulations!", 16) == 0) {
         system("/bin/sh");
     } else {
         puts("\nInvalid Password");
