@@ -5,7 +5,7 @@
 ```bash
 level03@OverRide:~$ ./level03 
 ***********************************
-*		level03		**
+*		        level03		           **
 ***********************************
 Password:test
 
@@ -223,7 +223,7 @@ test(buffer, (char *)0x1337d00d);
 ```bash
 level03@OverRide:~$ ./level03 
 ***********************************
-*		level03		**
+*		level03	                  	**
 ***********************************
 Password:322424827
 $ whoami
