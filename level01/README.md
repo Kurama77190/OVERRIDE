@@ -104,8 +104,8 @@ Program received signal SIGSEGV, Segmentation fault.
 ```
 > _**MON OFFSET EST DE 80**_
 
-### EXPLOIT: NOP_SLED RET2RET
-- adresse du nop_sled dans l'environement -> 0xffffdc3d
+### EXPLOIT: NOP_SLIDE RET2RET
+- adresse du nop_slide dans l'environement -> 0xffffdc3d
 - adresse d'une instruction ret dans le main ->0x080485b5
 
 ```bash
@@ -133,5 +133,5 @@ PwBLgNa8p8MTKW57S7zxVAQCxnCpV8JqTTs9XEBv
 ### SOURCES
 
 - [**shellcode**](http://shell-storm.org/shellcode/files/shellcode-219.html)
-- [**nop_sled**](https://www.youtube.com/watch?v=1S0aBV-Waeo&t=818s)
+- [**nop_slide**](https://www.youtube.com/watch?v=1S0aBV-Waeo&t=818s)
 - [**codeOp**](http://ref.x86asm.net/coder.html)

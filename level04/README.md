@@ -116,7 +116,7 @@ Le ret2libc est une methode de la stackoverflow dans le bloc RET du programme po
 
 ##### Pourquoi utiliser le **RET2LIBC** aulieu du **RET2RET** ?
 
-Lors des precedents level nous avons toujours opter pour un ret2ret to nopsled car monter le payload est plus simple a faire. Dans ce cas la nous avons un probleme qui nous empeche d'opter pour cette methode qui est le fonction `PTRACE_PEEKUSER` du parents.
+Lors des precedents level nous avons toujours opter pour un ret2ret to nopslide car monter le payload est plus simple a faire. Dans ce cas la nous avons un probleme qui nous empeche d'opter pour cette methode qui est le fonction `PTRACE_PEEKUSER` du parents.
 
 ##### Pourquoi **PTRACE_PEEKUSER** pose probleme ici ?
 ```c
